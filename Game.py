@@ -67,7 +67,6 @@ class UnitType:
 
         # int
         self.attack_cooldown_duration = None
-        self.attack_cooldown = None
 
         # bool
         self.can_harvest = None
@@ -105,6 +104,9 @@ class Unit:
         # Am I ready to attack again? bool
         self.can_attack = None
 
+        # Number of turns before I can attack again
+        self.attack_cooldown = None
+
 
 class GameInfo:
     """Contains info about the game such  as game duration, map size and
@@ -119,7 +121,7 @@ class GameInfo:
         self.turn_duration = game_info_di['turn_duration']
         self.unit_types = []
 
-        # Get unit type information. Some fields are optional.    
+        # Get unit type information. Some fields are optional.
         unit_types_di = game_info_di['unit_info']
         for unit_name,unit_di in zip(unit_types_di.keys(), unit_types_di.values()):
             ut = UnitType()
@@ -167,7 +169,9 @@ class GameState:
 
         # A list of Unit instances
         self.my_units = []
+        self.my_unit_ids = []
         self.enemy_units = []
+        self.enemy_unit_ids = []
         self.my_base = None
         self.enemy_base = None
 
@@ -181,6 +185,73 @@ class GameState:
 
         # Are any units or buildings being attacked
         self.being_attacked = None
+
+    def set_game_info(self, gi_dict):
+        self.game_info = GameInfo(gi_dict)
+
+    def update_tiles(self, tu_dict):
+        #   Add any new tiles
+        #   Update attributes of tile instances
+        pass
+
+    def update_units(self, unit_updates):
+        for unit in unit_updates:
+            u = Unit()
+            u.id = unit['id']
+            u.player_id = unit['player_id']
+            u.type = unit['type']
+            u.status = unit['status']
+
+            if 'attack_cooldown' in unit.keys():
+                u.attack_cooldown = unit['attack_cooldown']
+            if 'can_attack' in unit.keys():
+                u.can_attack = bool(unit['can_attack'])
+            if 'health' in unit.keys():
+                u.health = unit['health']
+            if 'resource' in unit.keys():
+                u.resource = unit['resource']
+            if 'x' in unit.keys():
+                u.x = unit['x']
+            if 'y' in unit.keys():
+                u.y = unit['y']
+
+            # Convert to enums
+            if u.type == 'base':
+                u.type = BASE_UTP
+            elif u.type == 'worker':
+                u.type = WORKER_UTP
+            elif u.type == 'scout':
+                u.type = SCOUT_UTP
+            elif u.type == 'tank':
+                u.type = TANK_UTP
+
+            if u.status == 'idle':
+                u.status = IDLE_STAT
+            elif u.status == 'moving':
+                u.status = MOVING_STAT
+            elif u.status == 'building':
+                u.status = BUILDING_STAT
+            elif u.status == 'dead':
+                u.status = DEAD_STAT
+
+            if u.type == BASE_UTP:
+                if u.player_id == 0:
+                    self.my_base = u
+                else:
+                    self.enemy_base = u
+
+            unit_list = self.enemy_units
+            unit_id_list = self.enemy_unit_ids
+            if u.player_id == 0:
+                unit_list = self.my_units
+                unit_id_list = self.my_unit_ids
+
+            if u.id not in unit_id_list:
+                unit_id_list.append(unit['id'])
+                unit_list.append(u)
+            else:
+                indx = unit_id_list.index(u.id)
+                unit_list[indx] = u
 
 
 class Game:
@@ -200,17 +271,10 @@ class Game:
         self.game_state.time_remaining = msg['time']
 
         # Init GameInfo
-        if self.game_state.turn_counter == 0:
-            self.game_state.game_info = GameInfo(msg['game_info'])
-
-        # Update tiles
-        #   Add any new tiles
-        #   Update attributes of tile instances
-
-        # Update units
-        #   Add any new units
-        #   Update attributes of Unit instances
-        pass
+        if msg['turn'] == 0:
+            self.game_state.set_game_info(msg['game_info'])
+        self.game_state.update_tiles(msg['tile_updates'])
+        self.game_state.update_units(msg['unit_updates'])
 
     def get_cmd(self):
         # Get agent's response to observing the environment.
