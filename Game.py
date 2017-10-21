@@ -185,11 +185,30 @@ class GameState:
 
         # Are any units or buildings being attacked
         self.being_attacked = None
+    
+    def indices(self, x_rel, y_rel):
+        """Convert a pair of relative coordinates to map indices where
+        (x_rel, y_rel) == (0,0) maps to (w, h), that is to the center of the map
+        array (of size (2w+1, 2h+1).
+        """
+        w = self.game_info.map_width
+        h = self.game_info.map_height
+        return (x_rel + w, y_rel + h)
 
     def set_game_info(self, gi_dict):
         self.game_info = GameInfo(gi_dict)
+    
+    def init_map(self):
+        w = self.game_info.map_width
+        h = self.game_info.map_height
+        w, h = self.indices(w, h)
+        # There will always be a middle tile in map.
+        # We will place the homebase there.
+        w += 1
+        h += 1
+        self.map = [[None]*w for h in range(h)]
 
-    def update_tiles(self, tu_dict):
+    def update_tiles(self, tile_updates):
         #   Add any new tiles
         #   Update attributes of tile instances
         pass
@@ -273,6 +292,7 @@ class Game:
         # Init GameInfo
         if msg['turn'] == 0:
             self.game_state.set_game_info(msg['game_info'])
+            self.game_state.init_map()
         self.game_state.update_tiles(msg['tile_updates'])
         self.game_state.update_units(msg['unit_updates'])
 
