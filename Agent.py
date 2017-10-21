@@ -12,7 +12,10 @@ class Agent:
         # Move Unit(id, direction)
         # {'command': 'MOVE', 'unit': 6, 'dir': 'E'},
 
-        command_batch = {'commands':[{'command': 'MOVE', 'unit': 6, 'dir': 'S'}]}
+        command_batch = {'commands':[
+            {'command': 'MOVE', 'unit': 6, 'dir': 'N'},
+            {'command': 'GATHER', 'unit': 6, 'dir': 'N'}
+            ]}
         return command_batch
 
     def act(self, game_state):
