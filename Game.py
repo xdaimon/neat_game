@@ -122,6 +122,10 @@ class GameState:
 
             if 'blocked' in keys:
                 t.blocked = bool(tile['blocked'])
+            elif self.map[y][x].blocked:
+                # We don't want to loose this information when the tile becomes hidden.
+                # (when blocked not in keys).
+                t.blocked = True
 
             if 'resources' in keys and tile['resources']:
                 resource_di = tile['resources']
