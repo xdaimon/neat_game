@@ -265,36 +265,51 @@ class GameState:
 
             self.map[y][x] = t
 
-    def update_my_units(self, unit_updates):
-        for unit in unit_updates:
-            u = Unit()
-            u.id = unit['id']
-            u.player_id = unit['player_id']
-            u.type = unit['type']
-            u.status = unit['status']
-            u.x, u.y = self.indices(unit['x'], unit['y'])
-
-            if 'attack_cooldown' in unit.keys():
-                u.attack_cooldown = unit['attack_cooldown']
-            if 'can_attack' in unit.keys():
-                u.can_attack = bool(unit['can_attack'])
-            if 'health' in unit.keys():
-                u.health = unit['health']
-            if 'resource' in unit.keys():
-                u.resource = unit['resource']
-
-            if u.type == 'base':
-                self.my_base = u
-            elif u.id not in self.my_unit_ids and u.status != 'dead':
-                self.my_unit_ids.append(unit['id'])
-                self.my_units.append(u)
+    def update_unit(self, u, base, unit_ids, unit_list):
+        if u.type == 'base':
+            # Dont over write command list
+            if base:
+                u.cmd_list = base.cmd_list
+            base = u
+        elif u.id not in unit_ids and u.status != 'dead':
+            unit_ids.append(u.id)
+            unit_list.append(u)
+        else:
+            # Dont over write command list or target
+            indx = unit_ids.index(u.id)
+            u.cmd_list = unit_list[indx].cmd_list
+            u.target = unit_list[indx].target
+            if u.status == 'dead':
+                unit_ids.remove(u.id)
+                unit_list.remove(unit_list[indx])
             else:
-                indx = self.my_unit_ids.index(u.id)
-                if u.status == 'dead':
-                    self.my_unit_ids.remove(u.id)
-                    self.my_units.remove(self.my_units[indx])
-                else:
-                    self.my_units[indx] = u
+                unit_list[indx] = u
+
+    def init_unit(self, unit_di):
+        """Make a unit instance given the unit_di."""
+        u = Unit()
+        u.id = unit_di['id']
+        u.player_id = unit_di['player_id']
+        u.type = unit_di['type']
+        u.status = unit_di['status']
+        u.x, u.y = self.indices(unit_di['x'], unit_di['y'])
+
+        keys = unit_di.keys()
+        if 'attack_cooldown' in keys:
+            u.attack_cooldown = unit_di['attack_cooldown']
+        if 'can_attack' in keys:
+            u.can_attack = bool(unit_di['can_attack'])
+        if 'health' in keys:
+            u.health = unit_di['health']
+        if 'resource' in keys:
+            u.resource = unit_di['resource']
+
+        return u
+
+    def update_my_units(self, unit_updates_di):
+        for unit_di in unit_updates_di:
+            u = self.init_unit(unit_di)
+            self.update_unit(u, self.my_base, self.my_unit_ids, self.my_units)
 
 
 class Game:
