@@ -1,6 +1,7 @@
 import sys
 import json
 from Game import Game
+import Test
 
 if (sys.version_info > (3, 0)):
     print("Python 3.X detected")
@@ -31,8 +32,12 @@ class NetworkHandler(ss.StreamRequestHandler):
 # TODO Tell Game() that it should use an agent with a certain strategy. For
 # testing purposes.
 def main():
+    if 'test' in sys.argv:
+        Test.test()
+        return
+
     host = '127.0.0.1'
-    port = 9090
+    port = int(len(sys.argv)>1 and sys.argv[1]) or 9090
     try:
         server = ss.TCPServer((host, port), NetworkHandler)
     except OSError:
