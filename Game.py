@@ -92,6 +92,9 @@ class Unit:
         # What command I'm currently executing
         self.status = None
 
+        # The id of the game entity that I'm targeting (resource_id or enemy_id)
+        self.target = None
+
         self.health = None
 
         # Am I carrying a resource? bool
@@ -102,6 +105,9 @@ class Unit:
 
         # Number of turns before I can attack again
         self.attack_cooldown = None
+
+        # My command list
+        self.cmd_list = None
 
 
 class GameInfo:
@@ -172,7 +178,7 @@ class GameState:
         # A 2D list of tiles
         self.map = []
 
-        # A list of resource instances
+        # A list of Resource instances
         self.resource_piles = []
         self.resource_ids = []
 
@@ -313,6 +319,8 @@ class Game:
             self.game_state.set_game_info(msg['game_info'])
             self.game_state.init_map()
             self.game_state.player_id = msg['player']
+
+        # Update GameState
         if msg['tile_updates']:
             self.game_state.update_tiles(msg['tile_updates'])
         if msg['unit_updates']:
