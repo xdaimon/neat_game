@@ -5,9 +5,23 @@ from Constants import *
 
 ### TODO ###
 # Who removes empty resources from the resource list?
-# Who removes dead units from the unit list
+# Who removes dead units from the unit list (see todo in update_my_units(.))
 # it seems like the game state update should
-# it would be nice if the agent never had to mutate the game_state
+# it would be nice if the agent never had to mutate the game_state.
+
+# TODO if a tile is put under fog of war, then knowledge about the resources/units
+# it contains is lost in my current model. However, when that tile becomes viewable
+# again, I think that the information would be regained. So because I store resources
+# and enemy units in their own lists, I do not need to worry about loosing visibility
+# of things. I always have a list of last known positions for enemy units and resources.
+# I should remember, when I implement the agent, that if there is no enemy where
+# the enemy_list thought there should be, then entry in the enemy_list should be removed.
+
+# So it seems that the agent might need to modify stuff in game_state. Really,
+# the stuff that the agent is modifying is like the agent's memory. The memory that an
+# enemy was at a location could turn out to be false (as mentioned above) and so
+# that memory should be deleted.
+# I might not want to depend on this though.
 
 # Do I store resource/unit id's in the tiles?
 # If I do then I need to worry about how those get updated
@@ -22,7 +36,7 @@ class Resource:
     def __init__(self):
         self.id = None
 
-        # Position of resource relative to homebase
+        # Position of resource, map array indices
         self.x = None
         self.y = None
 
@@ -44,7 +58,7 @@ class Tile:
         # Is tile within view of some friendly?
         self.visible = None
 
-        # Tile's position relative to homebase
+        # Tile's position, map array indices
         # self.x = None
         # self.y = None
 
@@ -69,17 +83,9 @@ class UnitType:
         self.make_cost = None
         self.make_time = None
         self.speed = None
-
-        # enum
         self.attack_type = None
-
-        # int
         self.attack_damage = None
-
-        # int
         self.attack_cooldown_duration = None
-
-        # bool
         self.can_harvest = None
 
 
@@ -99,7 +105,7 @@ class Unit:
         # My unit type. An index into GameState.unit_types, int and enum
         self.type = None
 
-        # My position relative to homebase, int
+        # My position, map array indices
         self.x = None
         self.y = None
 
@@ -181,7 +187,7 @@ class GameState:
         self.my_base = None
         self.enemy_base = None
 
-        # A list of tiles
+        # A 2D list of tiles
         self.map = []
 
         # A list of resource instances
@@ -214,45 +220,54 @@ class GameState:
         self.map = [[None]*w for h in range(h)]
 
     def update_tiles(self, tile_updates):
-        return
         for tile in tile_updates:
-            x, y = self.indices(tile['x'], tile['y'])
             t = Tile()
-            t.blocked = bool(tile['blocked'])
-            if tile['resource']:
-                resource_di = tile['resource']
+            keys = tile.keys()
+
+            x, y = self.indices(tile['x'], tile['y'])
+            # non viewable tiles will not have any other keys because they're
+            # under fog of war
+            t.visible = bool(tile['visible'])
+
+            if 'blocked' in keys:
+                t.blocked = bool(tile['blocked'])
+
+            if 'resources' in keys and tile['resources']:
+                resource_di = tile['resources']
                 r = Resource()
                 r.id = resource_di['id']
                 r.remaining = resource_di['total']
                 if r.id not in self.resource_ids:
                     r.carry_amount = resource_di['value']
                     r.type = resource_di['type']
-                    r.x = x
-                    r.y = y
+                    r.x, r.y = x, y
                     self.resource_ids.append(r.id)
                     self.resource_piles.append(r)
                 t.resource_id = r.id
 
-            for enemy in tile['units']:
-                u = Unit()
-                u.player_id = 1 - self.player_id
-                u.id = enemy['id']
-                u.type = enemy['type']
-                u.status = enemy['status']
-                u.health = enemy['health']
-                u.x = x
-                u.y = y
-                # TODO what if u.status == dead?
-                if u.type == 'base':
-                    self.enemy_base = u
-                elif u.id not in self.enemy_unit_ids:
-                    self.enemy_unit_ids.append(u.id)
-                    self.enemy_units.append(u)
-                else:
-                    indx  = self.enemy_unit_ids.index(u.id)
-                    self.enemy_units[indx] = u
+            if 'units' in keys:
+                for enemy in tile['units']:
+                    u = Unit()
+                    u.player_id = enemy['player_id']
+                    u.id = enemy['id']
+                    u.type = enemy['type']
+                    u.status = enemy['status']
+                    u.health = enemy['health']
+                    u.x, u.y = x, y
 
-    def update_units(self, unit_updates):
+                    # TODO what if u.status == dead?
+                    if u.type == 'base':
+                        self.enemy_base = u
+                    elif u.id not in self.enemy_unit_ids:
+                        self.enemy_unit_ids.append(u.id)
+                        self.enemy_units.append(u)
+                    else:
+                        indx = self.enemy_unit_ids.index(u.id)
+                        self.enemy_units[indx] = u
+
+            self.map[y][x] = t
+
+    def update_my_units(self, unit_updates):
         for unit in unit_updates:
             u = Unit()
             u.id = unit['id']
@@ -270,24 +285,15 @@ class GameState:
             if 'resource' in unit.keys():
                 u.resource = unit['resource']
 
+            # TODO what if u.status == dead?
             if u.type == 'base':
-                if u.player_id == self.player_id:
-                    self.my_base = u
-                else:
-                    self.enemy_base = u
-
-            unit_list = self.enemy_units
-            unit_id_list = self.enemy_unit_ids
-            if u.player_id == self.player_id:
-                unit_list = self.my_units
-                unit_id_list = self.my_unit_ids
-
-            if u.id not in unit_id_list:
-                unit_id_list.append(unit['id'])
-                unit_list.append(u)
+                self.my_base = u
+            elif u.id not in self.my_unit_ids:
+                self.my_unit_ids.append(unit['id'])
+                self.my_units.append(u)
             else:
-                indx = unit_id_list.index(u.id)
-                unit_list[indx] = u
+                indx = self.my_unit_ids.index(u.id)
+                self.my_units[indx] = u
 
 
 class Game:
@@ -300,7 +306,7 @@ class Game:
 
     def parse_msg(self, msg):
         """Updates game_state for msg."""
-        print(json.dumps(msg, indent=3, sort_keys=True))
+        # print(json.dumps(msg, indent=3, sort_keys=True))
 
         # Update time info
         self.game_state.turn_counter = msg['turn']
@@ -311,8 +317,10 @@ class Game:
             self.game_state.set_game_info(msg['game_info'])
             self.game_state.init_map()
             self.game_state.player_id = msg['player']
-        self.game_state.update_tiles(msg['tile_updates'])
-        self.game_state.update_units(msg['unit_updates'])
+        if msg['tile_updates']:
+            self.game_state.update_tiles(msg['tile_updates'])
+        if msg['unit_updates']:
+            self.game_state.update_my_units(msg['unit_updates'])
 
     def get_cmd(self):
         # Get agent's response to observing the environment.
