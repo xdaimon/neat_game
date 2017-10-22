@@ -2,35 +2,14 @@ import json
 from Agent import Agent
 from Constants import *
 
-# TODO what about enemy unit's 'unknown' status
-
 ### TODO ###
-# Who removes empty resources from the resource list?
-# Who removes dead units from the unit list (see todo in update_my_units(.))
-# it seems like the game state update should
 # it would be nice if the agent never had to mutate the game_state.
-
-# TODO if a tile is put under fog of war, then knowledge about the resources/units
-# it contains is lost in my current model. However, when that tile becomes viewable
-# again, I think that the information would be regained. So because I store resources
-# and enemy units in their own lists, I do not need to worry about loosing visibility
-# of things. I always have a list of last known positions for enemy units and resources.
-# I should remember, when I implement the agent, that if there is no enemy where
-# the enemy_list thought there should be, then entry in the enemy_list should be removed.
-
-# So it seems that the agent might need to modify stuff in game_state. Really,
-# the stuff that the agent is modifying is like the agent's memory. The memory that an
-# enemy was at a location could turn out to be false (as mentioned above) and so
-# that memory should be deleted.
-# I might not want to depend on this though.
-
-# Do I store resource/unit id's in the tiles?
-# If I do then I need to worry about how those get updated
+# When the agent targets an enemy from the enemy_list, be sure to check that the
+# enemy's tile is visible, otherwise we can't be sure that the enemy is actually
+# there (remove the entry in the enemy_list ? No, the enemy's unit count might be useful).
 
 # when I get a tile update, is the visible bool true if an enemy unit
 # that I can't see can see the tile?
-
-# convert all coordinates to map indices
 
 class Resource:
     """Represents a harvestable resources on a tile."""
@@ -323,7 +302,7 @@ class Game:
     def parse_msg(self, msg):
         """Updates game_state for msg.
         msg is a dictionary."""
-        print(json.dumps(msg, indent=3, sort_keys=True))
+        # print(json.dumps(msg, indent=3, sort_keys=True))
 
         # Update time info
         self.game_state.turn_counter = msg['turn']
