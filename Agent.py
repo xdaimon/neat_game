@@ -2,68 +2,65 @@ class Agent:
     def __init__(self):
         pass
 
-    def move_unit(self, unit, destination):
+    def spread_units(self, unit_group):
+        # Might not do this
+
+        # Spreads the units right now!
+
+        # Compute mean point of group
+        # Move units away from mean point
+        # Move units who are closer together farther
+
+        # This will require modifying the task of a unit.
+        #   If a unit is moving to B and I want it to move through A to B, then
+        #   add move(A) to the top of the task list
+
+        # The units must re-evaluate the move(B) task once move(A) task completes
+        # The reason is that the path generated for units might no longer be valid
+        # after the units leave the path
+
+        # So, I can delete the cmd_list and replace it with the cmd_list for move(A)
+        # Then once move(A) is completed, executing move(B) will generate a new cmd_list.
         pass
 
-    def attack_unit(self, unit, enemy_id):
-        # If next command in unit command list is an attack command,
-        # will the attack succeed?
-        # It would fail if the enemy unit is no longer in view or if enemy unit
-        # has moved.
-        # If enemy unit no longer in view, we need a new task.
-        # If enemy unit in view but not in range (1 for worker, 5x5sq for tank),
-        # then we need to insert some move commands before the attack command
-        pass
-
-    def collect_resource(self, unit, resource_id):
+    def surround_enemy(self, unit_group):
         pass
 
     def command_units(self, game_state):
-        # Strategize given the game_state.
-        # for each unit, update that unit's command list
+        # Implement strategy
+        # Harvest nearest resources until have enough units to destroy enemy base
+        # If a unit has no task then it should be given a new task.
+
+        # Idle workers
+        # Busy workers
         pass
 
     def build_units(self, game_state):
+        # Build workers until we have a certain number of units.
+
+        # Gives build task to my_base
         pass
 
-    def move_test(self, game_state):
-        print('Turn: ', game_state.turn_counter)
-        print(game_state.my_units[0].status)
-        print()
-        direction = 'N' if not game_state.my_units[0].resource else 'S'
-        if direction == 'S':
-            direction = 'N' if not game_state.my_units[0].status == 'idle' else 'S'
-        elif direction == 'N':
-            direction = 'S' if not game_state.my_units[0].status == 'idle' else 'N'
-        cmd_list = []
-        for ids in game_state.my_unit_ids:
-            if game_state.my_units[game_state.my_unit_ids.index(ids)].status == 'idle':
-                cmd_list.append({'command': 'MOVE', 'unit': ids, 'dir': direction})
-                cmd_list.append({'command': 'GATHER', 'unit': ids, 'dir': direction})
-                # cmd_list.append({'command': 'SHOOT', 'unit':ids,'dx':2, 'dy':2})
-        command_batch = {'commands':cmd_list}
-        return command_batch
-
     def get_commands_batch(self, game_state):
-        # The worker goes to status idle at the 5th turn after the turn its move
-        # command was issued on.
-        # So on turn 0 I commanded a worker to move north
-        # at turn 5 that worker went to status idle.
-        # also on turn 5 I submitted a command to move north again
-        # so I should expect the worker to complete that command and move north
-        # on turn 10.
+        # For each unit, remove unit.cmd_list[-1] and add it to the command batch.
+        # order of commands in my_cmd_list does not matter.
+        my_cmd_list = []
+        for unit in game_state.my_units:
+            if unit.did_complete_cmd() and unit.cmd_list:
+                my_cmd_list.append(unit.cmd_list.pop())
 
-        # So if status idle then execute next command
-        # ...
+        if game_state.my_base.cmd_list:
+            my_cmd_list.append(game_state.my_base.cmd_list.pop())
 
-        cmd_bat = self.move_test(game_state)
-        # For each unit, remove cmd_list[0] and add it to the command batch
+        # print(cmd_list)
+
+        cmd_bat = {'commands':my_cmd_list}
         return cmd_bat
 
     def act(self, game_state):
         # Update unit command queues
         self.build_units(game_state)
         self.command_units(game_state)
-        # Generate command list by poping off each units command queue.
+
         cmd_bat = self.get_commands_batch(game_state)
         return cmd_bat

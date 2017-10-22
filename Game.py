@@ -1,5 +1,7 @@
 import json
-from Agent import Agent
+from Agent import *
+from Unit import *
+from Tile import *
 from Constants import *
 
 ### TODO ###
@@ -10,105 +12,6 @@ from Constants import *
 
 # when I get a tile update, is the visible bool true if an enemy unit
 # that I can't see can see the tile?
-
-class Resource:
-    """Represents a harvestable resources on a tile."""
-    def __init__(self):
-        self.id = None
-
-        # Position of resource, map array indices
-        self.x = None
-        self.y = None
-
-        # Small or large, enum
-        self.type = None
-
-        # Remaining resources
-        self.remaining = None
-
-        # How much a unit can carry
-        self.carry_amount = None
-
-
-class Tile:
-    """The type of object that units move across.
-    game_state.map is a 2D list of Tile instances.
-    """
-    def __init__(self):
-        # Is tile within view of some friendly?
-        self.visible = None
-
-        # Tile's position, map array indices
-        # self.x = None
-        # self.y = None
-
-        # Can units traverse tile?
-        # If tile holds empty resource or dead ship then blocked should be False
-        self.blocked = None
-
-        # A resource id
-        self.resource_id = None
-
-        # List of unit ids
-        self.enemy_ids = None
-
-
-class UnitType:
-    """Contains information about each type of unit in the game.
-    Not every unit has a certain attribute."""
-    def __init__(self):
-        self.name = ''
-        self.hitpoints = None
-        self.sight_range = None
-        self.make_cost = None
-        self.make_time = None
-        self.speed = None
-        self.attack_type = None
-        self.attack_damage = None
-        self.attack_cooldown_duration = None
-        self.can_harvest = None
-
-
-class Unit:
-    """Information about a specific unit instance.
-    Not every unit has a certain attribute.
-    Instances of Unit are held in GameState.my_units and GameState.enemy_units.
-    Indices to these lists of instances will be found in the game map tiles.
-    """
-    def __init__(self):
-        # Who I belong to, int
-        self.player_id = None
-
-        # My identity, int
-        self.id = None
-
-        # My unit type. An index into GameState.unit_types, int and enum
-        self.type = None
-
-        # My position, map array indices
-        self.x = None
-        self.y = None
-
-        # What command I'm currently executing
-        self.status = None
-
-        # The id of the game entity that I'm targeting (resource_id or enemy_id)
-        self.target = None
-
-        self.health = None
-
-        # Am I carrying a resource? bool
-        self.have_resource = None
-
-        # Am I ready to attack again? bool
-        self.can_attack = None
-
-        # Number of turns before I can attack again
-        self.attack_cooldown = None
-
-        # My command list
-        self.cmd_list = None
-
 
 class GameInfo:
     """Contains info about the game such  as game duration, map size and
@@ -284,11 +187,21 @@ class GameState:
                 u.have_resource = unit['resource']
 
             if u.type == 'base':
+                # Dont over write command/task list
+                if self.my_base:
+                    u.task_list = self.my_base.task_list
+                    u.cmd_list = self.my_base.cmd_list
                 self.my_base = u
             elif u.id not in self.my_unit_ids and u.status != 'dead':
                 self.my_unit_ids.append(unit['id'])
                 self.my_units.append(u)
             else:
+                indx = self.my_unit_ids.index(u.id)
+
+                # Dont over write command/task list
+                u.task_list = self.my_units[indx].task_list
+                u.cmd_list = self.my_units[indx].cmd_list
+
                 indx = self.my_unit_ids.index(u.id)
                 if u.status == 'dead':
                     self.my_unit_ids.remove(u.id)
