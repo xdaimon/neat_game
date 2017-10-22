@@ -5,19 +5,17 @@ class Agent:
     def get_random_move(self, gate_state):
         pass
 
-    def move_all(self, game_state):
-        # units = set([unit['id'] for unit in json_data['unit_updates'] if unit['type'] != 'base'])
-        # self.units |= units # add any additional ids we encounter
+    def move_test(self, game_state):
+        direction = 'N' if not game_state.my_units[0].resource else 'S'
+        cmd_list = []
+        for ids in game_state.my_unit_ids:
+            cmd_list.append({'command': 'MOVE', 'unit': ids, 'dir': direction})
+            cmd_list.append({'command': 'GATHER', 'unit': ids, 'dir': direction})
+            # cmd_list.append({'command': 'CREATE', 'type':'worker'})
+        command_batch = {'commands':cmd_list}
 
-        # Move Unit(id, direction)
-        # {'command': 'MOVE', 'unit': 6, 'dir': 'E'},
-
-        command_batch = {'commands':[
-            {'command': 'MOVE', 'unit': 6, 'dir': 'N'},
-            {'command': 'GATHER', 'unit': 6, 'dir': 'N'}
-            ]}
         return command_batch
 
     def act(self, game_state):
         # Generate command list
-        return self.move_all(game_state)
+        return self.move_test(game_state)
