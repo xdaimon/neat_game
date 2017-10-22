@@ -2,6 +2,7 @@ import json
 from Agent import Agent
 from Constants import *
 
+# TODO what about enemy unit's 'unknown' status
 
 ### TODO ###
 # Who removes empty resources from the resource list?
@@ -109,10 +110,9 @@ class Unit:
         self.x = None
         self.y = None
 
-        # What command I'm currently executing, enum
+        # What command I'm currently executing
         self.status = None
 
-        # int
         self.health = None
 
         # Am I carrying a resource? bool
@@ -128,6 +128,9 @@ class Unit:
 class GameInfo:
     """Contains info about the game such  as game duration, map size and
     the different types of units.
+
+    attack_cooldown_duration is 3 in README but 30 in json msg.
+    build_time is 5 in README but 50 in json msg.
     """
     def __init__(self, game_info_di):
         self.singleton()
@@ -196,7 +199,7 @@ class GameState:
 
         # Are any units or buildings being attacked
         self.being_attacked = None
-    
+
     def indices(self, x_rel, y_rel):
         """Convert a pair of relative coordinates to map indices where
         (x_rel, y_rel) == (0,0) maps to (w, h), that is to the center of the map
@@ -237,13 +240,20 @@ class GameState:
                 r = Resource()
                 r.id = resource_di['id']
                 r.remaining = resource_di['total']
-                if r.id not in self.resource_ids:
-                    r.carry_amount = resource_di['value']
-                    r.type = resource_di['type']
-                    r.x, r.y = x, y
-                    self.resource_ids.append(r.id)
-                    self.resource_piles.append(r)
-                t.resource_id = r.id
+                if r.remaining > 0:
+                    if r.id not in self.resource_ids:
+                        r.carry_amount = resource_di['value']
+                        r.type = resource_di['type']
+                        r.x, r.y = x, y
+                        self.resource_ids.append(r.id)
+                        self.resource_piles.append(r)
+                    t.resource_id = r.id
+                else:
+                    t.resource_id = None
+                    if r.id in self.resource_ids:
+                        indx = self.resource_ids.index(r.id)
+                        self.resource_ids.remove(r.id)
+                        self.resource_piles.remove(self.resource_piles[indx])
 
             if 'units' in keys:
                 for enemy in tile['units']:
@@ -255,15 +265,18 @@ class GameState:
                     u.health = enemy['health']
                     u.x, u.y = x, y
 
-                    # TODO what if u.status == dead?
                     if u.type == 'base':
                         self.enemy_base = u
-                    elif u.id not in self.enemy_unit_ids:
+                    elif u.id not in self.enemy_unit_ids and u.status != 'dead':
                         self.enemy_unit_ids.append(u.id)
                         self.enemy_units.append(u)
                     else:
                         indx = self.enemy_unit_ids.index(u.id)
-                        self.enemy_units[indx] = u
+                        if u.status == 'dead':
+                            self.enemy_unit_ids.remove(u.id)
+                            self.enemy_units.remove(self.enemy_units[indx])
+                        else:
+                            self.enemy_units[indx] = u
 
             self.map[y][x] = t
 
@@ -285,28 +298,32 @@ class GameState:
             if 'resource' in unit.keys():
                 u.resource = unit['resource']
 
-            # TODO what if u.status == dead?
             if u.type == 'base':
                 self.my_base = u
-            elif u.id not in self.my_unit_ids:
+            elif u.id not in self.my_unit_ids and u.status != 'dead':
                 self.my_unit_ids.append(unit['id'])
                 self.my_units.append(u)
             else:
                 indx = self.my_unit_ids.index(u.id)
-                self.my_units[indx] = u
+                if u.status == 'dead':
+                    self.my_unit_ids.remove(u.id)
+                    self.my_units.remove(self.my_units[indx])
+                else:
+                    self.my_units[indx] = u
 
 
 class Game:
-    """Contains info about current state of the game. Updates this info given a
-    msg from the game server.
+    """Manages current game state. Updates game state when given a msg from the
+    game server.
     """
     def __init__(self):
         self.agent = Agent()
         self.game_state = GameState()
 
     def parse_msg(self, msg):
-        """Updates game_state for msg."""
-        # print(json.dumps(msg, indent=3, sort_keys=True))
+        """Updates game_state for msg.
+        msg is a dictionary."""
+        print(json.dumps(msg, indent=3, sort_keys=True))
 
         # Update time info
         self.game_state.turn_counter = msg['turn']
