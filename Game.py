@@ -98,7 +98,7 @@ class Unit:
         self.health = None
 
         # Am I carrying a resource? bool
-        self.resource = None
+        self.have_resource = None
 
         # Am I ready to attack again? bool
         self.can_attack = None
@@ -281,7 +281,7 @@ class GameState:
             if 'health' in unit.keys():
                 u.health = unit['health']
             if 'resource' in unit.keys():
-                u.resource = unit['resource']
+                u.have_resource = unit['resource']
 
             if u.type == 'base':
                 self.my_base = u
