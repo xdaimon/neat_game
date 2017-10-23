@@ -80,6 +80,10 @@ class GameState:
 
         # A 2D list of tiles
         self.map = []
+        self.min_observed_x = 10**6
+        self.min_observed_y = 10**6
+        self.max_observed_x = -10**6
+        self.max_observed_y = -10**6
 
         # A list of Resource instances
         self.resource_piles = []
@@ -116,6 +120,10 @@ class GameState:
             keys = tile.keys()
 
             x, y = self.indices(tile['x'], tile['y'])
+            self.min_observed_x = min(self.min_observed_x, x)
+            self.min_observed_y = min(self.min_observed_y, y)
+            self.max_observed_x = max(self.max_observed_x, x)
+            self.max_observed_y = max(self.max_observed_y, y)
             # non viewable tiles will not have any other keys because they're
             # under fog of war
             t.visible = bool(tile['visible'])
@@ -185,6 +193,8 @@ class GameState:
             u.status = unit['status']
             u.x, u.y = self.indices(unit['x'], unit['y'])
             u.can_cmd_on = 0
+            u.cmd_list = []
+            u.task_list = []
 
             if 'attack_cooldown' in unit.keys():
                 u.attack_cooldown = unit['attack_cooldown']
@@ -193,11 +203,12 @@ class GameState:
             if 'health' in unit.keys():
                 u.health = unit['health']
             if 'resource' in unit.keys():
-                u.have_resource = unit['resource']
+                u.resource = unit['resource']
 
             if u.type.name == 'base':
                 # Dont over write command/task list
                 if self.my_base:
+                    u.can_cmd_on = self.my_base.can_cmd_on
                     u.task_list = self.my_base.task_list
                     u.cmd_list = self.my_base.cmd_list
                 self.my_base = u
@@ -208,8 +219,10 @@ class GameState:
                 indx = self.my_unit_ids.index(u.id)
 
                 # Dont over write command/task list
+                u.can_cmd_on = self.my_units[indx].can_cmd_on
                 u.task_list = self.my_units[indx].task_list
                 u.cmd_list = self.my_units[indx].cmd_list
+                u.current_path = self.my_units[indx].current_path
 
                 indx = self.my_unit_ids.index(u.id)
                 if u.status == 'dead':
@@ -220,14 +233,17 @@ class GameState:
     
     def print_world(self):
         u = self.my_units[0]
-        pt = self.path
+        pt = u.current_path
         for y,r in enumerate(self.map):
             for x,c in enumerate(r):
                 if c and c.blocked:
                     print(',',end='')
                 elif c and not c.blocked:
                     if x == u.x and y == u.y:
-                        print('<',end='')
+                        if pt and (x,y) in pt:
+                            print('+',end='')
+                        else:
+                            print('<',end='')
                     else:
                         if (x,y) == (self.my_base.x, self.my_base.y):
                             print('H',end='')
@@ -249,9 +265,8 @@ class Game:
         self.game_state = GameState()
 
     def parse_msg(self, msg):
-        """Updates game_state for msg.
-        msg is a dictionary."""
-        print(json.dumps(msg, indent=3, sort_keys=True))
+        """Updates game_state for msg. msg is a dictionary."""
+        # print(json.dumps(msg, indent=3, sort_keys=True))
 
         # Update time info
         if 'turn' in msg.keys():

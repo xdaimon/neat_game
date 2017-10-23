@@ -19,8 +19,9 @@ class Path:
             y = n[1]
             x = n[0]
             if (0 <= x < len(map[0])) and (0 <= y < len(map)):
-                if map[y][x] and (not map[y][x].blocked):
-                    ret.append(n)
+                if not map[y][x] or not map[y][x].blocked:
+                   ret.append(n)
+
         return ret
     
     def heuristic(self, dest, nxt):
@@ -42,21 +43,25 @@ class Path:
         current = start
         while not frontier.empty():
             current = frontier.get()[1]
+            current_str = str(current)
 
             if current == dest:
                 break
 
             for nxt in self.neighbors(current, map):
-                new_cost = cost_so_far[str(current)] + 1
+                new_cost = cost_so_far[current_str] + 1
+                nxt_str = str(nxt)
                 # if str(nxt) not in came_from:
-                if (str(nxt) not in cost_so_far) or (new_cost < cost_so_far[str(nxt)]):
-                    cost_so_far[str(nxt)] = new_cost
+                if (nxt_str not in cost_so_far) or (new_cost < cost_so_far[nxt_str]):
+                    cost_so_far[nxt_str] = new_cost
                     priority = new_cost + self.heuristic(dest, nxt)
+                    priority = self.heuristic(dest, nxt)
                     frontier.put((priority, nxt))
-                    came_from[str(nxt)] = current
+                    came_from[nxt_str] = current
 
         path = [current]
         while current != start: 
             current = came_from[str(current)]
             path.append(current)
+        path.reverse()
         return path
