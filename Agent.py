@@ -44,18 +44,18 @@ class Agent:
         # TODO only choose points from None tiles in rectangle bounding non-None tiles
         # Need ((bound_x), (bound_y)) which could be computed from tile_updates
 
-        min_x = game_state.min_observed_x-8
-        min_y = game_state.min_observed_y-8
-        max_x = game_state.max_observed_x+8
-        max_y = game_state.max_observed_y+8
+        min_x = game_state.min_observed_x-11
+        min_y = game_state.min_observed_y-11
+        max_x = game_state.max_observed_x+11
+        max_y = game_state.max_observed_y+11
 
         # point a vector from home to the mean
         mid_x = (min_x + max_x)/2
         mid_y = (min_y + max_y)/2
         home_x = game_state.my_base.x
         home_y = game_state.my_base.y
-        dif_x = 2.*(mid_x - home_x)
-        dif_y = 2.*(mid_y - home_y)
+        dif_x = 1.5*(mid_x - home_x)
+        dif_y = 1.5*(mid_y - home_y)
 
         # For each unit
         points = []
@@ -174,7 +174,10 @@ class Agent:
 
         self.build_units(game_state)
         if game_state.turn_counter < 500:
-            self.harvest(game_state)
+            if not game_state.resource_ids:
+                self.explore(game_state)
+            else:
+                self.harvest(game_state)
         elif game_state.enemy_base:
             if not game_state.seen_base:
                 for u in game_state.my_units:
