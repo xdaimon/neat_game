@@ -53,39 +53,42 @@ class Agent:
 
         # Idle workers
         # Busy workers
+        #u = game_state.my_units[0]
+        #if game_state.turn_counter == 0:
+        #    u.cmd_list = [{'command':'MOVE', 'unit':u.id, 'dir':'S'}, {'command':'GATHER', 'unit':u.id, 'dir':'N'}, {'command':'MOVE', 'unit':u.id, 'dir':'N'}, {'command':'MOVE', 'unit':u.id, 'dir':'N'}]
 
         # TESTING
         for u in game_state.my_units:
-            if game_state.turn_counter == 100:
-                # Find path from base to unit
-                dest = (u.x, u.y)
-                start = game_state.indices(0, 0)
-                path_finder = Path()
-                path = path_finder.get_path(game_state.map, start, dest)
-                u.cmd_list = []
-                for p in zip(path, path[1:]):
-                    Dir = ''
-                    x = p[0][0] - p[1][0]
-                    if x:
-                        if x < 0:
-                            Dir = 'E'
-                        else:
-                            Dir = 'W'
-                    else:
-                        y = p[0][1] - p[1][1]
-                        if y > 0:
-                            Dir = 'N'
-                        else:
-                            Dir = 'S'
-                    u.cmd_list.insert(0, {'command':'MOVE', 'unit':u.id, 'dir':Dir})
-                # game_state.path = path
-                # game_state.print_world()
-            elif game_state.turn_counter < 95:
-                if u.did_complete_cmd():
-                    if game_state.turn_counter % 2:
-                        u.cmd_list = [{'command':'MOVE', 'unit':u.id, 'dir':['N','S','E','W'][u.id%4]}]
-                    else:
-                        u.cmd_list = [{'command':'MOVE', 'unit':u.id, 'dir':['N','S','E','W'][(int(random.random()*102)+u.id)%4]}]
+           if game_state.turn_counter == 100:
+               # Find path from base to unit
+               dest = (u.x, u.y)
+               start = game_state.indices(0, 0)
+               path_finder = Path()
+               path = path_finder.get_path(game_state.map, start, dest)
+               u.cmd_list = []
+               for p in zip(path, path[1:]):
+                   Dir = ''
+                   x = p[0][0] - p[1][0]
+                   if x:
+                       if x < 0:
+                           Dir = 'E'
+                       else:
+                           Dir = 'W'
+                   else:
+                       y = p[0][1] - p[1][1]
+                       if y > 0:
+                           Dir = 'N'
+                       else:
+                           Dir = 'S'
+                   u.cmd_list.insert(0, {'command':'MOVE', 'unit':u.id, 'dir':Dir})
+               # game_state.path = path
+               # game_state.print_world()
+           elif game_state.turn_counter < 95:
+               if u.did_complete_cmd():
+                   if game_state.turn_counter % 2:
+                       u.cmd_list = [{'command':'MOVE', 'unit':u.id, 'dir':['N','S','E','W'][u.id%4]}]
+                   else:
+                       u.cmd_list = [{'command':'MOVE', 'unit':u.id, 'dir':['N','S','E','W'][(int(random.random()*102)+u.id)%4]}]
         pass
 
     def build_units(self, game_state):
@@ -98,9 +101,10 @@ class Agent:
         # For each unit, remove unit.cmd_list[-1] and add it to the command batch.
         # order of commands in my_cmd_list does not matter.
         my_cmd_list = []
+        turn = game_state.turn_counter
         for unit in game_state.my_units:
-            if unit.did_complete_cmd() and unit.cmd_list:
-                my_cmd_list.append(unit.cmd_list.pop())
+            if unit.did_complete_cmd() and unit.cmd_list and turn >= unit.can_cmd_on:
+                my_cmd_list.append(unit.next_cmd(turn))
 
         if game_state.my_base.cmd_list:
             my_cmd_list.append(game_state.my_base.cmd_list.pop())

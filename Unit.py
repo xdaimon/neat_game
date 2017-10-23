@@ -26,7 +26,7 @@ class Unit:
         # My identity, int
         self.id = None
 
-        # My unit type. An index into GameState.unit_types, int and enum
+        # My unit type
         self.type = None
 
         # My position, map array indices
@@ -47,6 +47,9 @@ class Unit:
         # Number of turns before I can attack again
         self.attack_cooldown = None
 
+        # The next turn I can receive a command on
+        self.can_cmd_on = None
+
         # My Tasks. Each element is in format (TASK_ENUM, task_parameters)
         # So for the move task -> (MOVE_TASK, x_dest, y_dest)
         # for attack task -> (ATTACK_TASK, enemy_id)
@@ -55,6 +58,7 @@ class Unit:
         self.task_list = None
 
         # My commands needed to complete my current task
+        # {'command':'Move', 'unit':unit.id, 'dir':'N'}
         self.cmd_list = None
 
     def move_to(self, destination):
@@ -87,7 +91,7 @@ class Unit:
         else:
             return True
     
-    def can_task_complete(self):
+    def current_task_possible(self):
         # If task cannot complete, then self.cancel_current_task()
         pass
     
@@ -106,6 +110,27 @@ class Unit:
             return True
         else:
             return False
+    
+    def next_cmd(self, turn):
+        cmd = self.cmd_list[-1]['command']
+        delay = 0
+        if cmd == 'MOVE':
+           delay = self.type.speed
+        elif cmd in ['MELEE', 'SHOOT']:
+           delay = self.type.attack_cooldown_duration//10
+        elif cmd == 'CREATE':
+           unit = self.cmd_list[-1]['type']
+           if unit == 'tank':
+               delay = 15
+           elif unit == 'scout':
+               delay = 10
+           else:
+               delay = 5
+        elif cmd == 'GATHER':
+           delay = 1
+        self.can_cmd_on = turn + delay
+        # print(self.cmd_list[-1])
+        return self.cmd_list.pop()
     
     def update_cmd_list(self):
         # given the unit's current task, set cmd_list equal to commands needed to
