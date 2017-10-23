@@ -27,7 +27,7 @@ class GameInfo:
         self.map_height = game_info_di['map_height']
         self.map_width = game_info_di['map_width']
         self.turn_duration = game_info_di['turn_duration']
-        self.unit_types = []
+        self.unit_types = {}
 
         # Get unit type information. Some fields are optional.
         unit_types_di = game_info_di['unit_info']
@@ -52,7 +52,7 @@ class GameInfo:
                 ut.attack_cooldown_duration = unit_di['attack_cooldown_duration']
             if 'can_carry' in keys:
                 ut.can_harvest = bool(unit_di['can_carry'])
-            self.unit_types.append(ut)
+            self.unit_types[ut.name] = ut
 
     initialized = False
     def singleton(self):
@@ -64,7 +64,6 @@ class GameInfo:
 
 class GameState:
     def __init__(self):
-        self.path = None
         self.game_info = None
         self.player_id = None
 
@@ -157,12 +156,12 @@ class GameState:
                     u = Unit()
                     u.player_id = enemy['player_id']
                     u.id = enemy['id']
-                    u.type = enemy['type']
+                    u.type = self.game_info.unit_types[enemy['type']]
                     u.status = enemy['status']
                     u.health = enemy['health']
                     u.x, u.y = x, y
 
-                    if u.type == 'base':
+                    if u.type.name == 'base':
                         self.enemy_base = u
                     elif u.id not in self.enemy_unit_ids and u.status != 'dead':
                         self.enemy_unit_ids.append(u.id)
@@ -182,9 +181,10 @@ class GameState:
             u = Unit()
             u.id = unit['id']
             u.player_id = unit['player_id']
-            u.type = unit['type']
+            u.type = self.game_info.unit_types[unit['type']]
             u.status = unit['status']
             u.x, u.y = self.indices(unit['x'], unit['y'])
+            u.can_cmd_on = 0
 
             if 'attack_cooldown' in unit.keys():
                 u.attack_cooldown = unit['attack_cooldown']
@@ -195,7 +195,7 @@ class GameState:
             if 'resource' in unit.keys():
                 u.have_resource = unit['resource']
 
-            if u.type == 'base':
+            if u.type.name == 'base':
                 # Dont over write command/task list
                 if self.my_base:
                     u.task_list = self.my_base.task_list
