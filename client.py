@@ -37,7 +37,7 @@ def main():
         Test.test()
         return
 
-    host = '127.0.0.1'
+    host = '0.0.0.0'
     port = int(len(sys.argv)>1 and sys.argv[1]) or 9090
     try:
         server = ss.TCPServer((host, port), NetworkHandler)

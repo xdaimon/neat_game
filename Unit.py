@@ -114,17 +114,19 @@ class Unit:
         pass
 
     def tile_in_front(self, game_state):
-        direction = self.cmd_list[-1]['dir']
-        # check if unit obstructed
-        if direction == 'N':
-            tile = game_state.map[self.y-1][self.x]
-        elif direction == 'E':
-            tile = game_state.map[self.y][self.x+1]
-        elif direction == 'S':
-            tile = game_state.map[self.y+1][self.x]
-        elif direction == 'W':
-            tile = game_state.map[self.y][self.x-1]
-        return tile
+        if self.cmd_list:
+            if 'dir' in self.cmd_list[-1].keys():
+                direction = self.cmd_list[-1]['dir']
+                # check if unit obstructed
+                if direction == 'N':
+                    tile = game_state.map[self.y-1][self.x]
+                elif direction == 'E':
+                    tile = game_state.map[self.y][self.x+1]
+                elif direction == 'S':
+                    tile = game_state.map[self.y+1][self.x]
+                elif direction == 'W':
+                    tile = game_state.map[self.y][self.x-1]
+                return tile
 
 
     def current_task_possible(self, game_state):
@@ -164,7 +166,14 @@ class Unit:
                 else:
                     return True
             if task == ATTACK_TASK:
-                return True
+                tile = self.tile_in_front(game_state)
+                # MOVE_TASK is used for exploration
+                # so if we've already seen the tile we are headed towards, then
+                # find a new tile to discover
+                if tile:
+                    return not tile.blocked
+                else:
+                    return True
     
     def has_task(self):
         if self.task_list:

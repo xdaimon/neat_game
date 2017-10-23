@@ -216,7 +216,8 @@ class GameState:
                 self.my_unit_ids.append(unit['id'])
                 self.my_units.append(u)
             else:
-                indx = self.my_unit_ids.index(u.id)
+                if self.my_unit_ids and u.id in self.my_unit_ids:
+                    indx = self.my_unit_ids.index(u.id)
 
                 # Dont over write command/task list
                 u.can_cmd_on = self.my_units[indx].can_cmd_on

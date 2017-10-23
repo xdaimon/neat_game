@@ -49,14 +49,14 @@ class Path:
                 break
 
             for nxt in self.neighbors(current, map):
-                unit_here = False
-                if units:
-                    for u in units:
-                        if u.x == nxt[0] and u.y == nxt[1]:
-                            unit_here = True
+                #unit_here = False
+                #if units:
+                #    for u in units:
+                #        if u.x == nxt[0] and u.y == nxt[1]:
+                #            unit_here = True
                 new_cost = cost_so_far[current_str] + 1
-                if unit_here:
-                    new_cost += 8
+                #if unit_here:
+                #    new_cost += 80
                 nxt_str = str(nxt)
                 # if str(nxt) not in came_from:
                 if (nxt_str not in cost_so_far) or (new_cost < cost_so_far[nxt_str]):

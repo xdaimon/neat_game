@@ -1,7 +1,8 @@
+from copy import deepcopy
+import random
+
 from Path import *
 from Tile import *
-import random
-from copy import deepcopy
 from Constants import *
 
 # makes me want to play some AOEII
@@ -11,15 +12,11 @@ class Agent:
         pass
 
     def spread_units(self, unit_group):
-        # Might not do this
-
-        # Spreads the units right now!
-
         # Compute mean point of group
         # Move units away from mean point
         # Move units who are closer together farther
 
-        # This will require modifying the task of a unit.
+        # This will require modifying the task of a unit.?
         #   If a unit is moving to B and I want it to move through A to B, then
         #   add move(A) to the top of the task list
 
@@ -38,11 +35,8 @@ class Agent:
 
         # An initial unexplored point is chosen
         # Consider all None tiles in map to be not blocked
-        # If unit encounters obstacle, unit task cannot be completed and unit
-        # becomes idle and is eventually given a new task
-
-        # TODO only choose points from None tiles in rectangle bounding non-None tiles
-        # Need ((bound_x), (bound_y)) which could be computed from tile_updates
+        # If unit encounters obstacle, unit task (to follow the path) cannot be
+        # completed and unit becomes idle and is eventually given a new task
 
         min_x = game_state.min_observed_x-11
         min_y = game_state.min_observed_y-11
@@ -54,11 +48,9 @@ class Agent:
         mid_y = (min_y + max_y)/2
         home_x = game_state.my_base.x
         home_y = game_state.my_base.y
-        dif_x = 1.5*(mid_x - home_x)
-        dif_y = 1.5*(mid_y - home_y)
+        dif_x = 2.*(mid_x - home_x)
+        dif_y = 2*(mid_y - home_y)
 
-        # For each unit
-        points = []
         for u in game_state.my_units:
             if u.has_task():
                 continue
@@ -104,7 +96,7 @@ class Agent:
     
     def ready_harvest(self, game_state):
         # Sort the resources based on their distance to homebase so that
-        # I always harvest from the closest resources first.j
+        # I always harvest from the closest resources first.
         if game_state.resource_ids:
             home = (game_state.my_base.x,game_state.my_base.y)
             dist_list = []
@@ -122,7 +114,7 @@ class Agent:
                 i = dist_list.pop()[1]
                 game_state.resource_ids[i] = temp_ids[j]
                 game_state.resource_piles[i] = temp_piles[j]
-                j+=1
+                j += 1
 
 
     def act(self, game_state):
@@ -165,15 +157,21 @@ class Agent:
         #print(game_state.my_units[0].x)
 
         T = 50
+        T2 = 200
         if game_state.turn_counter < T:
             self.explore(game_state)
+            if len(game_state.resource_ids) > 5:
+                T = game_state.turn_counter+1
         elif game_state.turn_counter == T:
             for u in game_state.my_units:
                 u.stop_task()
-            self.ready_harvest(game_state)
+            if len(game_state.resource_ids) > 2:
+                self.ready_harvest(game_state)
+            else:
+                T2 = 50
 
         self.build_units(game_state)
-        if game_state.turn_counter < 500:
+        if game_state.turn_counter < T2:
             if not game_state.resource_ids:
                 self.explore(game_state)
             else:
