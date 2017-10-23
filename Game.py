@@ -122,10 +122,13 @@ class GameState:
 
             if 'blocked' in keys:
                 t.blocked = bool(tile['blocked'])
-            elif self.map[y][x].blocked:
+            elif self.map[y][x].blocked != None:
                 # We don't want to loose this information when the tile becomes hidden.
                 # (when blocked not in keys).
-                t.blocked = True
+                t.blocked = self.map[y][x].blocked
+            if t.blocked == None:
+                print('No tile that has been viewed by a unit should have blocked that isnt a bool')
+                exit(-1)
 
             if 'resources' in keys and tile['resources']:
                 resource_di = tile['resources']
@@ -140,6 +143,7 @@ class GameState:
                         self.resource_ids.append(r.id)
                         self.resource_piles.append(r)
                     t.resource_id = r.id
+                    t.blocked = True
                 else:
                     t.resource_id = None
                     if r.id in self.resource_ids:
@@ -225,23 +229,37 @@ class Game:
     def parse_msg(self, msg):
         """Updates game_state for msg.
         msg is a dictionary."""
-        # print(json.dumps(msg, indent=3, sort_keys=True))
+        print(json.dumps(msg, indent=3, sort_keys=True))
 
         # Update time info
-        self.game_state.turn_counter = msg['turn']
-        self.game_state.time_remaining = msg['time']
+        if 'turn' in msg.keys():
+            self.game_state.turn_counter = msg['turn']
+        else:
+            print("no turn key in msg")
+
+        if 'time' in msg.keys():
+            self.game_state.time_remaining = msg['time']
+        else:
+            print("no time key in msg")
 
         # Init GameInfo
-        if msg['turn'] == 0:
+        if 'turn' in msg.keys() and msg['turn'] == 0:
             self.game_state.set_game_info(msg['game_info'])
             self.game_state.init_map()
             self.game_state.player_id = msg['player']
 
         # Update GameState
-        if msg['tile_updates']:
-            self.game_state.update_tiles(msg['tile_updates'])
-        if msg['unit_updates']:
-            self.game_state.update_my_units(msg['unit_updates'])
+        if 'tile_updates' in msg.keys():
+            if msg['tile_updates']:
+                self.game_state.update_tiles(msg['tile_updates'])
+        else:
+            print("no tile_updates key in msg")
+
+        if 'unit_updates' in msg.keys():
+            if msg['unit_updates']:
+                self.game_state.update_my_units(msg['unit_updates'])
+        else:
+            print("no unit_updates key in msg")
 
     def get_cmd(self):
         # Get agent's response to observing the environment.
