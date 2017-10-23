@@ -175,10 +175,12 @@ class GameState:
                         self.enemy_unit_ids.append(u.id)
                         self.enemy_units.append(u)
                     else:
-                        indx = self.enemy_unit_ids.index(u.id)
+                        if self.enemy_unit_ids and u.id in self.enemy_unit_ids:
+                            indx = self.enemy_unit_ids.index(u.id)
                         if u.status == 'dead':
-                            self.enemy_unit_ids.remove(u.id)
-                            self.enemy_units.remove(self.enemy_units[indx])
+                            if self.enemy_unit_ids and u.id in self.enemy_unit_ids:
+                                self.enemy_unit_ids.remove(u.id)
+                                self.enemy_units.remove(self.enemy_units[indx])
                         else:
                             self.enemy_units[indx] = u
 
