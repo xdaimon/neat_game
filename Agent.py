@@ -160,7 +160,7 @@ class Agent:
         T2 = 200
         if game_state.turn_counter < T:
             self.explore(game_state)
-            if len(game_state.resource_ids) > 5 or game_state.game_info.map_height < 20:
+            if len(game_state.resource_ids) > 5 or game_state.game_info.map_height < 23:
                 T = game_state.turn_counter+1
         elif game_state.turn_counter == T:
             for u in game_state.my_units:
