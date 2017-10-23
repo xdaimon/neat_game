@@ -64,6 +64,7 @@ class GameInfo:
 
 class GameState:
     def __init__(self):
+        self.path = None
         self.game_info = None
         self.player_id = None
 
@@ -216,6 +217,27 @@ class GameState:
                     self.my_units.remove(self.my_units[indx])
                 else:
                     self.my_units[indx] = u
+    
+    def print_world(self):
+        u = self.my_units[0]
+        pt = self.path
+        for y,r in enumerate(self.map):
+            for x,c in enumerate(r):
+                if c and c.blocked:
+                    print(',',end='')
+                elif c and not c.blocked:
+                    if x == u.x and y == u.y:
+                        print('<',end='')
+                    else:
+                        if (x,y) == (self.my_base.x, self.my_base.y):
+                            print('H',end='')
+                        elif pt and (x,y) in pt:
+                            print('*',end='')
+                        else:
+                            print(' ',end='')
+                else:
+                    print('.', end='')
+            print()
 
 
 class Game:
