@@ -1,3 +1,6 @@
+from Constants import *
+from Path import *
+
 class UnitType:
     """Contains information about each type of unit in the game.
     Not every unit has a certain attribute."""
@@ -38,8 +41,8 @@ class Unit:
 
         self.health = None
 
-        # Am I carrying a resource? bool
-        self.have_resource = None
+        # How much resources am I carrying?
+        self.resource = None
 
         # Am I ready to attack again? bool
         self.can_attack = None
@@ -51,7 +54,7 @@ class Unit:
         self.can_cmd_on = None
 
         # My Tasks. Each element is in format (TASK_ENUM, task_parameters)
-        # So for the move task -> (MOVE_TASK, x_dest, y_dest)
+        # So for the move task -> (MOVE_TASK, map, (x_dest, y_dest))
         # for attack task -> (ATTACK_TASK, enemy_id)
         # for gather task -> (GATHER_TASK, resource_id)
         # ...
@@ -61,14 +64,35 @@ class Unit:
         # {'command':'Move', 'unit':unit.id, 'dir':'N'}
         self.cmd_list = None
 
-    def move_to(self, destination):
-        # add move task to unit task list
-        pass
+        # debuging
+        self.current_path = None
+
+    def follow_path(self, path):
+        self.current_path = path
+        for p in zip(path, path[1:]):
+            direction = ''
+            x = p[0][0] - p[1][0]
+            if x:
+                if x < 0:
+                    direction = 'E'
+                else:
+                    direction = 'W'
+            else:
+                y = p[0][1] - p[1][1]
+                if y > 0:
+                    direction = 'N'
+                else:
+                    direction = 'S'
+            self.cmd_list.insert(0, {'command':'MOVE', 'unit': self.id, 'dir': direction})
+
+    def move_to(self, map, destination):
+        start = (self.x, self.y)
+        self.follow_path(Path().get_path(map, start, destination))
     
-    def move_in_dir(self, direction, distance):
-        # compute dest for unit
-        # call move unit for unit
-        pass
+    #def move_in_dir(self, map, direction, distance):
+    #    # compute dest for unit
+    #    # call move unit for unit
+    #    pass
 
     def attack_unit(self, enemy_id):
         # If next command in unit command list is an attack command,
@@ -84,16 +108,53 @@ class Unit:
         # Collect the resource and take it back to base.
         # Do this until the resource is empty.
         pass
-    
-    def is_task_complete(self):
-        if self.cmd_list:
-            return False
-        else:
-            return True
-    
-    def current_task_possible(self):
-        # If task cannot complete, then self.cancel_current_task()
+
+    def tile_in_front(self, game_state):
+        direction = self.cmd_list[-1]['dir']
+        # check if unit obstructed
+        if direction == 'N':
+            tile = game_state.map[self.y-1][self.x]
+        elif direction == 'E':
+            tile = game_state.map[self.y][self.x+1]
+        elif direction == 'S':
+            tile = game_state.map[self.y+1][self.x]
+        elif direction == 'W':
+            tile = game_state.map[self.y][self.x-1]
+        return tile
+
+
+    def current_task_possible(self, game_state):
+        if self.has_task():
+            task = self.task_list[-1]
+            if task[0] == MOVE_TASK:
+                tile = self.tile_in_front(game_state)
+                if not tile:
+                    print('tile in front is still None')
+                    exit(-1)
+                else:
+                    return not tile.blocked
+            if task[0] == BUILD_TASK:
+                # if not enough resources
+                if game_state.my_base.resource < task[1]:
+                    return False
+                else:
+                    return True
+                pass
+            if task[0] == GATHER_TASK:
+                # TODO finish
+                # if gathering
+                # check if resources in direction
+                # if moving
+                # check for obstructions
+                print("gather task can_complete() not implemented")
+                exit(-1)
         pass
+    
+    def has_task(self):
+        if self.task_list:
+            return True
+        else:
+            return False
     
     def did_complete_cmd(self):
         # The worker goes to status idle at the 5th turn after the turn its move
@@ -129,26 +190,45 @@ class Unit:
         elif cmd == 'GATHER':
            delay = 1
         self.can_cmd_on = turn + delay
-        # print(self.cmd_list[-1])
-        return self.cmd_list.pop()
+
+        next_cmd = self.cmd_list.pop()
+        
+        # did we finish task?
+        if not self.cmd_list:
+            self.task_list = []
+
+        return next_cmd
     
     def update_cmd_list(self):
+
         # given the unit's current task, set cmd_list equal to commands needed to
         # make sure the unit completes its task.
         # if the cmd_list goes empty then the unit will be reported as having
         # completed its task.
-        pass
+
+        current_task = self.task_list[-1]
+        if current_task[0] == BUILD_TASK:
+            if self.type.name == 'base':
+                self.cmd_list = [ {'command':'CREATE', 'type':current_task[1]} ]
+        elif current_task[0] == MOVE_TASK:
+            self.move_to(current_task[1], current_task[2])
+        elif current_task[0] == ATTACK_TASK:
+            pass
+        elif current_task[0] == GATHER_TASK:
+            # Move toward resource until tile with resource is in front of face.
+            pass
     
     def give_task(self, task):
-        # If add task, then new task is given top priority.
+        # The idea was that I would give a unit a move task, any task the unit
+        # was currently engaged in would be stopped and once the new task is completed
+        # the old task would 
+        self.stop_task()
         self.task_list.append(task)
+        if len(self.task_list) > 1:
+            print("Don't give units more than one task.")
+            exit(-1)
         self.update_cmd_list()
     
-    def cancel_current_task(self):
-        # stop task
-        # automatically start next task?
-        pass
-    
-    def stop_all_tasks(self):
+    def stop_task(self):
         self.task_list = []
         self.cmd_list = []
