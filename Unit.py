@@ -1,5 +1,6 @@
 from Constants import *
 from Path import *
+from Tile import *
 
 class UnitType:
     """Contains information about each type of unit in the game.
@@ -85,9 +86,12 @@ class Unit:
                     direction = 'S'
             self.cmd_list.insert(0, {'command':'MOVE', 'unit': self.id, 'dir': direction})
 
-    def move_to(self, map, destination):
+    def move_to(self, units, my_map, destination):
         start = (self.x, self.y)
-        self.follow_path(Path().get_path(map, start, destination))
+        self.follow_path(Path().get_path(units, my_map, start, destination))
+
+    def move(self, my_map, start, destination):
+        self.follow_path(Path().get_path(None, my_map, start, destination))
     
     #def move_in_dir(self, map, direction, distance):
     #    # compute dest for unit
@@ -104,7 +108,7 @@ class Unit:
         # then we need to insert some move commands before the attack command
         pass
 
-    def collect_resource(self, resource_id):
+    def collect_resource(self):
         # Collect the resource and take it back to base.
         # Do this until the resource is empty.
         pass
@@ -125,30 +129,42 @@ class Unit:
 
     def current_task_possible(self, game_state):
         if self.has_task():
-            task = self.task_list[-1]
-            if task[0] == MOVE_TASK:
+            task = self.task_list[-1][0]
+            param = self.task_list[-1][1]
+            if task == MOVE_TASK:
                 tile = self.tile_in_front(game_state)
+                # MOVE_TASK is used for exploration
+                # so if we've already seen the tile we are headed towards, then
+                # find a new tile to discover
+                if game_state.map[param[1]][param[0]]:
+                    return False
                 if not tile:
                     print('tile in front is still None')
                     exit(-1)
                 else:
                     return not tile.blocked
-            if task[0] == BUILD_TASK:
+            if task == BUILD_TASK:
+                unit_type = param
+                cost = 0
+                if unit_type == 'worker':
+                    cost = 100
+                elif unit_type == 'scout':
+                    cost = 130
+                elif unit_type == 'tank':
+                    cost = 150
                 # if not enough resources
-                if game_state.my_base.resource < task[1]:
+                if game_state.my_base.resource < cost:
                     return False
                 else:
                     return True
-                pass
-            if task[0] == GATHER_TASK:
-                # TODO finish
-                # if gathering
-                # check if resources in direction
-                # if moving
-                # check for obstructions
-                print("gather task can_complete() not implemented")
-                exit(-1)
-        pass
+            if task == GATHER_TASK:
+                resource = param
+                if resource.remaining == 0:
+                    return False
+                else:
+                    return True
+            if task == ATTACK_TASK:
+                return True
     
     def has_task(self):
         if self.task_list:
@@ -188,7 +204,7 @@ class Unit:
            else:
                delay = 5
         elif cmd == 'GATHER':
-           delay = 1
+           delay = 2
         self.can_cmd_on = turn + delay
 
         next_cmd = self.cmd_list.pop()
@@ -198,36 +214,33 @@ class Unit:
             self.task_list = []
 
         return next_cmd
-    
-    def update_cmd_list(self):
 
-        # given the unit's current task, set cmd_list equal to commands needed to
-        # make sure the unit completes its task.
-        # if the cmd_list goes empty then the unit will be reported as having
-        # completed its task.
-
-        current_task = self.task_list[-1]
-        if current_task[0] == BUILD_TASK:
-            if self.type.name == 'base':
-                self.cmd_list = [ {'command':'CREATE', 'type':current_task[1]} ]
-        elif current_task[0] == MOVE_TASK:
-            self.move_to(current_task[1], current_task[2])
-        elif current_task[0] == ATTACK_TASK:
-            pass
-        elif current_task[0] == GATHER_TASK:
-            # Move toward resource until tile with resource is in front of face.
-            pass
-    
-    def give_task(self, task):
-        # The idea was that I would give a unit a move task, any task the unit
-        # was currently engaged in would be stopped and once the new task is completed
-        # the old task would 
+    def give_task(self, task, game_state, param):
         self.stop_task()
-        self.task_list.append(task)
-        if len(self.task_list) > 1:
-            print("Don't give units more than one task.")
-            exit(-1)
-        self.update_cmd_list()
+        self.task_list.append((task, param))
+
+        if task == BUILD_TASK:
+            if self.type.name == 'base':
+                self.cmd_list = [ {'command':'CREATE', 'type': param} ]
+            else:
+                print("Tried to issue build command on non base unit")
+        elif task == MOVE_TASK:
+            self.move_to(game_state.my_units, game_state.map, param)
+        elif task == ATTACK_TASK:
+            loc_of_attack = param
+            self.move_to(game_state.my_units, game_state.map, loc_of_attack)
+            for x in range(50):
+                self.cmd_list.insert(0, {'command':'MELEE', 'unit':self.id, 'target':game_state.enemy_base.id})
+        elif task == GATHER_TASK:
+            resource = param
+            home = (game_state.my_base.x,game_state.my_base.y)
+            (x,y) = (resource.x, resource.y)
+            (x,y) = get_non_blocked_neighbor(game_state.map, (x,y), home)
+            self.move_to(None, game_state.map, (x,y))
+            dirs = ['N','S','E','W']
+            for d in dirs:
+               self.cmd_list.insert(0, {'command':'GATHER', 'unit':self.id, 'dir':d})
+            self.move(game_state.map, (x,y), home)
     
     def stop_task(self):
         self.task_list = []

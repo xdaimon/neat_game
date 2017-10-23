@@ -77,6 +77,7 @@ class GameState:
         self.enemy_unit_ids = []
         self.my_base = None
         self.enemy_base = None
+        self.seen_base = False
 
         # A 2D list of tiles
         self.map = []
@@ -88,9 +89,6 @@ class GameState:
         # A list of Resource instances
         self.resource_piles = []
         self.resource_ids = []
-
-        # Are any units or buildings being attacked
-        self.being_attacked = None
 
     def indices(self, x_rel, y_rel):
         """Convert a pair of relative coordinates to map indices where
@@ -143,21 +141,23 @@ class GameState:
                 r = Resource()
                 r.id = resource_di['id']
                 r.remaining = resource_di['total']
-                if r.remaining > 0:
-                    if r.id not in self.resource_ids:
-                        r.carry_amount = resource_di['value']
-                        r.type = resource_di['type']
-                        r.x, r.y = x, y
-                        self.resource_ids.append(r.id)
-                        self.resource_piles.append(r)
-                    t.resource_id = r.id
-                    t.blocked = True
-                else:
-                    t.resource_id = None
-                    if r.id in self.resource_ids:
-                        indx = self.resource_ids.index(r.id)
-                        self.resource_ids.remove(r.id)
-                        self.resource_piles.remove(self.resource_piles[indx])
+                # if r.remaining > 0:
+                if r.id not in self.resource_ids:
+                    r.carry_amount = resource_di['value']
+                    r.type = resource_di['type']
+                    r.x, r.y = x, y
+                    self.resource_ids.append(r.id)
+                    self.resource_piles.append(r)
+                t.resource_id = r.id
+                t.blocked = True
+
+            if 'resources' in keys and not t.resource_id and self.map[y][x]:
+                t.resource_id = None
+                rid = self.map[y][x].resource_id
+                if rid in self.resource_ids:
+                    indx = self.resource_ids.index(rid)
+                    self.resource_ids.remove(rid)
+                    self.resource_piles.remove(self.resource_piles[indx])
 
             if 'units' in keys:
                 for enemy in tile['units']:

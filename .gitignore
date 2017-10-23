@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+.gitignore
+
 __pycache__/
 *.py[cod]
 *$py.class
@@ -60,3 +62,5 @@ target/
 *.md
 
 notes\.txt
+
+game_output\.txt

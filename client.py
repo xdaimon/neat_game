@@ -26,7 +26,8 @@ class NetworkHandler(ss.StreamRequestHandler):
             if response:
                 self.send_msg(response)
             else:
-                print('Response Empty!')
+                print('Response Empty or None!')
+                exit(-1)
 
 
 # TODO Tell Game() that it should use an agent with a certain strategy. For

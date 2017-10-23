@@ -1,9 +1,6 @@
 from Game import Game
 from Constants import *
 
-# Submit data to Game
-# Verify that Game parses data correctly
-
 game_info = {
    "game_info": {
       "game_duration": 300000,
@@ -480,6 +477,18 @@ test1 = {
     }]
 }
 
+def move_unit():
+    pass
+
+
+def create_unit():
+    pass
+
+
+def give_unit_task():
+    pass
+
+
 def test():
     game = Game()
     # necessary game_info message
@@ -531,3 +540,4 @@ def test():
         print("My unit ids length failed test")
         return
 
+    # TODO test unit movements

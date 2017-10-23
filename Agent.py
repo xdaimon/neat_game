@@ -1,5 +1,7 @@
 from Path import *
+from Tile import *
 import random
+from copy import deepcopy
 from Constants import *
 
 # makes me want to play some AOEII
@@ -33,7 +35,6 @@ class Agent:
         pass
     
     def explore(self, game_state):
-        self.build_units(game_state)
 
         # An initial unexplored point is chosen
         # Consider all None tiles in map to be not blocked
@@ -43,10 +44,18 @@ class Agent:
         # TODO only choose points from None tiles in rectangle bounding non-None tiles
         # Need ((bound_x), (bound_y)) which could be computed from tile_updates
 
-        min_x = game_state.min_observed_x-5
-        min_y = game_state.min_observed_y-5
-        max_x = game_state.max_observed_x+5
-        max_y = game_state.max_observed_y+5
+        min_x = game_state.min_observed_x-8
+        min_y = game_state.min_observed_y-8
+        max_x = game_state.max_observed_x+8
+        max_y = game_state.max_observed_y+8
+
+        # point a vector from home to the mean
+        mid_x = (min_x + max_x)/2
+        mid_y = (min_y + max_y)/2
+        home_x = game_state.my_base.x
+        home_y = game_state.my_base.y
+        dif_x = 2.*(mid_x - home_x)
+        dif_y = 2.*(mid_y - home_y)
 
         # For each unit
         points = []
@@ -57,17 +66,17 @@ class Agent:
             h = len(game_state.map)
             for i in range(1000):
                 (x, y) = (random.uniform(min_x,max_x), random.uniform(min_y,max_y))
-                y = int(min(max(y, 0), len(game_state.map)-1))
-                x = int(min(max(x, 0), len(game_state.map[0])-1))
+                y = int(min(max(y+dif_y, 0), len(game_state.map)-1))
+                x = int(min(max(x+dif_x, 0), len(game_state.map[0])-1))
                 if game_state.map[y][x] is None:
                     break
-            u.give_task((MOVE_TASK, game_state.map, (x, y)))
+            u.give_task(MOVE_TASK, game_state, (x, y))
 
     def build_units(self, game_state):
         # Gives build task to my_base
         if not game_state.my_base.has_task():
             if game_state.my_base.resource >= 100:
-                game_state.my_base.give_task((BUILD_TASK, 'worker'))
+                game_state.my_base.give_task(BUILD_TASK, game_state, 'worker')
 
     def get_commands_batch(self, game_state):
         # order of commands in my_cmd_list does not matter.
@@ -83,6 +92,38 @@ class Agent:
 
         cmd_bat = {'commands':my_cmd_list}
         return cmd_bat
+
+    def harvest(self, game_state):
+        if game_state.resource_ids:
+            for i,u in enumerate(game_state.my_units):
+                # Choose one of the first few
+                if not u.has_task() and game_state.turn_counter >= u.can_cmd_on:
+                    indx = i%min(3,len(game_state.resource_ids))
+                    u.stop_task()
+                    u.give_task(GATHER_TASK, game_state, game_state.resource_piles[indx])
+    
+    def ready_harvest(self, game_state):
+        # Sort the resources based on their distance to homebase so that
+        # I always harvest from the closest resources first.j
+        if game_state.resource_ids:
+            home = (game_state.my_base.x,game_state.my_base.y)
+            dist_list = []
+            for i,r in enumerate(game_state.resource_piles):
+                px = r.x - home[0]
+                py = r.y - home[1]
+                dist_list.append((math.sqrt(px**2+py**2), i))
+            dist_list.sort()
+            dist_list = dist_list[::-1]
+
+            temp_piles = deepcopy(game_state.resource_piles)
+            temp_ids = deepcopy(game_state.resource_ids)
+            j = 0
+            while dist_list:
+                i = dist_list.pop()[1]
+                game_state.resource_ids[i] = temp_ids[j]
+                game_state.resource_piles[i] = temp_piles[j]
+                j+=1
+
 
     def act(self, game_state):
         # Implement strategy
@@ -114,38 +155,49 @@ class Agent:
             if u.has_task():
                 if not u.current_task_possible(game_state):
                     u.stop_task()
-                    print("Unit can't finish task, stopping")
+                    # print("Unit can't finish task, stopping")
 
         # Testing
         #if not game_state.my_units[0].has_task():
-        #    game_state.my_units[0].give_task((MOVE_TASK, game_state.map, (7,9)))
+        #    game_state.my_units[0].give_task(MOVE_TASK, game_state, (7,9)
         # game_state.print_world()
         #print(game_state.my_units[0].y)
         #print(game_state.my_units[0].x)
 
-        T = 80
+        T = 50
         if game_state.turn_counter < T:
             self.explore(game_state)
-        elif game_state.resource_piles == T:
-            for u in game_state.update_my_units:
-                rx = game_state.resource_piles[0].x
-                ry = game_state.resource_piles[0].y
+        elif game_state.turn_counter == T:
+            for u in game_state.my_units:
                 u.stop_task()
-                u.give_task((GATHER_TASK, game_state.resource_piles))
+            self.ready_harvest(game_state)
 
-            game_state.print_world()
+        self.build_units(game_state)
+        if game_state.turn_counter < 500:
+            self.harvest(game_state)
+        elif game_state.enemy_base:
+            if not game_state.seen_base:
+                for u in game_state.my_units:
+                    u.stop_task()
+                game_state.seen_base = True
 
-        # if game_state.enemy_base:
-        #     x = game_state.enemy_base.x
-        #     y = game_state.enemy_base.y
-        #     for u in game_state.my_units:
-        #         if u.has_task():
-        #             continue
-        #         u.give_task((ATTACK_TASK, game_state.map, (x-1, y-1)))
-        # else:
-        #     self.explore(game_state)
+            x = game_state.enemy_base.x
+            y = game_state.enemy_base.y
+            dirs = [(x+1,y),
+                    (x-1,y),
+                    (x,y+1),
+                    (x,y-1)]
+            for u in game_state.my_units:
+                if u.has_task():
+                    continue
+                # surround base randomly
+                rand = int(random.random()*4)
+                u.give_task(ATTACK_TASK, game_state, dirs[rand])
+        else:
+            # Now find base
+            self.explore(game_state)
 
-        # self.explore(game_state)
+        # game_state.print_world()
 
         cmd_bat = self.get_commands_batch(game_state)
         return cmd_bat
