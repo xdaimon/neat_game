@@ -36,14 +36,13 @@ class Path:
         frontier = queue.PriorityQueue()
         frontier.put((0, start))
         came_from = {}
-        came_from[str(start)] = None
+        came_from[start] = None
         cost_so_far = {}
-        cost_so_far[str(start)] = 0
+        cost_so_far[start] = 0
 
         current = start
         while not frontier.empty():
             current = frontier.get()[1]
-            current_str = str(current)
 
             if current == dest:
                 break
@@ -54,21 +53,20 @@ class Path:
                 #    for u in units:
                 #        if u.x == nxt[0] and u.y == nxt[1]:
                 #            unit_here = True
-                new_cost = cost_so_far[current_str] + 1
+                new_cost = cost_so_far[current] + 1
                 #if unit_here:
                 #    new_cost += 80
-                nxt_str = str(nxt)
                 # if str(nxt) not in came_from:
-                if (nxt_str not in cost_so_far) or (new_cost < cost_so_far[nxt_str]):
-                    cost_so_far[nxt_str] = new_cost
+                if (nxt not in cost_so_far) or (new_cost < cost_so_far[nxt]):
+                    cost_so_far[nxt] = new_cost
                     priority = new_cost + self.heuristic(dest, nxt)
                     # priority = self.heuristic(dest, nxt)
                     frontier.put((priority, nxt))
-                    came_from[nxt_str] = current
+                    came_from[nxt] = current
 
         path = [current]
         while current != start: 
-            current = came_from[str(current)]
+            current = came_from[current]
             path.append(current)
         path.reverse()
         return path
