@@ -3,7 +3,7 @@ from Path import *
 from Tile import *
 
 class UnitType:
-    """Contains information about each type of unit in the game.
+    """Can contains information about each type of unit in the game.
     Not every unit has a certain attribute."""
     def __init__(self):
         self.name = ''
@@ -55,9 +55,9 @@ class Unit:
         self.can_cmd_on = None
 
         # My Tasks. Each element is in format (TASK_ENUM, task_parameters)
-        # So for the move task -> (MOVE_TASK, map, (x_dest, y_dest))
-        # for attack task -> (ATTACK_TASK, enemy_id)
-        # for gather task -> (GATHER_TASK, resource_id)
+        # So for the move task -> (MOVE_TASK, (x_dest, y_dest))
+        # for attack task -> (ATTACK_TASK, location_of_attack)
+        # for gather task -> (GATHER_TASK, Resource instance)
         # ...
         self.task_list = None
 
@@ -65,11 +65,14 @@ class Unit:
         # {'command':'Move', 'unit':unit.id, 'dir':'N'}
         self.cmd_list = None
 
-        # debuging
+        # For debugging
         self.current_path = None
 
     def follow_path(self, path):
+        # For debugging
         self.current_path = path
+        #
+
         for p in zip(path, path[1:]):
             direction = ''
             x = p[0][0] - p[1][0]
@@ -137,15 +140,18 @@ class Unit:
                 tile = self.tile_in_front(game_state)
                 # MOVE_TASK is used for exploration
                 # so if we've already seen the tile we are headed towards, then
-                # find a new tile to discover
-                if game_state.map[param[1]][param[0]]:
+                # find a new tile to discover (we'll cancel this task and 
+                # assigned a new task that happens to have a different path)
+                dest = param
+                if game_state.map[dest[1]][dest[0]]:
                     return False
                 if not tile:
                     print('tile in front is still None')
                     exit(-1)
                 else:
                     return not tile.blocked
-            if task == BUILD_TASK:
+
+            elif task == BUILD_TASK:
                 unit_type = param
                 cost = 0
                 if unit_type == 'worker':
@@ -154,18 +160,19 @@ class Unit:
                     cost = 130
                 elif unit_type == 'tank':
                     cost = 150
-                # if not enough resources
                 if game_state.my_base.resource < cost:
                     return False
                 else:
                     return True
-            if task == GATHER_TASK:
+
+            elif task == GATHER_TASK:
                 resource = param
                 if resource.remaining == 0:
                     return False
                 else:
                     return True
-            if task == ATTACK_TASK:
+
+            elif task == ATTACK_TASK:
                 tile = self.tile_in_front(game_state)
                 # MOVE_TASK is used for exploration
                 # so if we've already seen the tile we are headed towards, then
@@ -174,7 +181,7 @@ class Unit:
                     return not tile.blocked
                 else:
                     return True
-    
+
     def has_task(self):
         if self.task_list:
             return True
@@ -217,7 +224,7 @@ class Unit:
         self.can_cmd_on = turn + delay
 
         next_cmd = self.cmd_list.pop()
-        
+
         # did we finish task?
         if not self.cmd_list:
             self.task_list = []

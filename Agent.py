@@ -149,12 +149,12 @@ class Agent:
                     u.stop_task()
                     # print("Unit can't finish task, stopping")
 
-        # Testing
-        #if not game_state.my_units[0].has_task():
-        #    game_state.my_units[0].give_task(MOVE_TASK, game_state, (7,9)
-        # game_state.print_world()
-        #print(game_state.my_units[0].y)
-        #print(game_state.my_units[0].x)
+        # TODO needs refactoring.
+        #   (Agent mode management, impossible task management, apply direction to coordinate)
+
+        # I've modified the code so that the sequence of modes the agent is in is
+        # a function of the size of the map and the number of resources available
+        # after / during initial exploration
 
         T = 50
         T2 = 200

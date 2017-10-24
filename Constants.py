@@ -1,3 +1,5 @@
+# Many of these are not used
+
 MELEE_ATK = 0
 RANGE_ATK = 1
 

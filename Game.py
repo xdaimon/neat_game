@@ -4,8 +4,10 @@ from Unit import *
 from Tile import *
 from Constants import *
 
-### TODO ###
-# it would be nice if the agent never had to mutate the game_state.
+# It would be nice if the agent never had to mutate the game_state.
+
+# TODO I had some errors when using [].index(.)
+
 # When the agent targets an enemy from the enemy_list, be sure to check that the
 # enemy's tile is visible, otherwise we can't be sure that the enemy is actually
 # there (remove the entry in the enemy_list ? No, the enemy's unit count might be useful).
@@ -113,6 +115,7 @@ class GameState:
         self.map = [[None]*w for h in range(h)]
 
     def update_tiles(self, tile_updates):
+        # TODO extract some functionality out of this function
         for tile in tile_updates:
             t = Tile()
             keys = tile.keys()
@@ -136,12 +139,13 @@ class GameState:
                 print('No tile that has been viewed by a unit should have blocked that isnt a bool')
                 exit(-1)
 
+            # Updates about enemy units come with tile_updates
             if 'resources' in keys and tile['resources']:
                 resource_di = tile['resources']
                 r = Resource()
                 r.id = resource_di['id']
                 r.remaining = resource_di['total']
-                # if r.remaining > 0:
+                # if r.remaining > 0:  This fixes a bug I think, I forget which one.
                 if r.id not in self.resource_ids:
                     r.carry_amount = resource_di['value']
                     r.type = resource_di['type']
@@ -159,6 +163,7 @@ class GameState:
                     self.resource_ids.remove(rid)
                     self.resource_piles.remove(self.resource_piles[indx])
 
+            # Updates about enemy units come with tile_updates
             if 'units' in keys:
                 for enemy in tile['units']:
                     u = Unit()
@@ -261,7 +266,7 @@ class GameState:
 
 class Game:
     """Manages current game state. Updates game state when given a msg from the
-    game server.
+    game server. Mediates between the Agent and the game server.
     """
     def __init__(self):
         self.agent = Agent()

@@ -8,7 +8,7 @@ class Resource:
         self.x = None
         self.y = None
 
-        # Small or large, enum
+        # 'Small' or 'large'
         self.type = None
 
         # Remaining resources
