@@ -15,6 +15,7 @@ Improvements
     - make sure units dont try to gather from or move to resources that don't exist
     - queue attack commands based on enemy hp
     - attack an enemy unit with a just a certain number of friendly units
+		- maximize resources gained per turn given coordinates and resource type
 
 
 Write test cases.

@@ -104,18 +104,22 @@ class Agent:
             for i,r in enumerate(game_state.resource_piles):
                 px = r.x - home[0]
                 py = r.y - home[1]
-                dist_list.append((math.sqrt(px**2+py**2), i))
+                cost = math.sqrt(px**2+py**2)
+                is_big = r.carry_amount > 10
+                if is_big:
+                    cost -= 10
+                dist_list.append((cost, i))
             dist_list.sort()
             dist_list = dist_list[::-1]
 
             temp_piles = deepcopy(game_state.resource_piles)
             temp_ids = deepcopy(game_state.resource_ids)
-            j = 0
+            game_state.resource_ids = []
+            game_state.resource_piles = []
             while dist_list:
                 i = dist_list.pop()[1]
-                game_state.resource_ids[i] = temp_ids[j]
-                game_state.resource_piles[i] = temp_piles[j]
-                j += 1
+                game_state.resource_ids.append(temp_ids[i])
+                game_state.resource_piles.append(temp_piles[i])
 
 
     def act(self, game_state):
