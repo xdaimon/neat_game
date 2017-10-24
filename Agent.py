@@ -43,26 +43,27 @@ class Agent:
         max_x = game_state.max_observed_x+11
         max_y = game_state.max_observed_y+11
 
-        # point a vector from home to the mean
-        mid_x = (min_x + max_x)/2
-        mid_y = (min_y + max_y)/2
-        home_x = game_state.my_base.x
-        home_y = game_state.my_base.y
-        dif_x = 2.*(mid_x - home_x)
-        dif_y = 2*(mid_y - home_y)
+        unexplored_list = []
+        min_x = max(min_x, 0)
+        min_y = max(min_y, 0)
+        max_x = min(max_x, len(game_state.map[0])-1)
+        max_y = min(max_y, len(game_state.map)-1)
+        for i in range(min_x, max_x):
+           for j in range(min_y, max_y):
+               if game_state.map[j][i] is None:
+                   unexplored_list.append((i,j))
+        random.shuffle(unexplored_list)
 
-        for u in game_state.my_units:
-            if u.has_task():
-                continue
-            w = len(game_state.map[0])
-            h = len(game_state.map)
-            for i in range(1000):
-                (x, y) = (random.uniform(min_x,max_x), random.uniform(min_y,max_y))
-                y = int(min(max(y+dif_y, 0), len(game_state.map)-1))
-                x = int(min(max(x+dif_x, 0), len(game_state.map[0])-1))
-                if game_state.map[y][x] is None:
-                    break
-            u.give_task(MOVE_TASK, game_state, (x, y))
+        if not unexplored_list:
+            # TODO agent should handle this case
+            for u in game_state.my_units:
+                u.stop_task()
+        else:
+            for u in game_state.my_units:
+                if u.has_task():
+                    continue
+                coord = unexplored_list.pop()
+                u.give_task(MOVE_TASK, game_state, (coord[0], coord[1]))
 
     def build_units(self, game_state):
         # Gives build task to my_base
