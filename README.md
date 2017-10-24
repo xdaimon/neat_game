@@ -1,6 +1,8 @@
 I wrote this code at a small code competition at Atomic Object in Ann Arbor. It was a lot of fun to participate and compete with the other programmers.
 
 For what this agent does, lightly gather resources and then rush, I think it does well. The path finding seems to be glitch free (should test it more though).
+
+
 Some things I've thought about since writing this code.
 
 
@@ -16,3 +18,7 @@ Improvements
 
 
 Write test cases.
+
+
+TODO
+    use dict.get(key) or dict.pop(key, or_value) instead of tons of if statements in json parser.
