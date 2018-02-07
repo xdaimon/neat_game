@@ -500,7 +500,7 @@ def test():
         print("unit_types length failed test")
         return
 
-    for ut in gi.unit_types:
+    for ut in gi.unit_types.values():
         fail = False
         uinfo = (ut.make_cost,
                 ut.sight_range,
@@ -541,3 +541,6 @@ def test():
         return
 
     # TODO test unit movements
+
+if __name__ == '__main__':
+    test()
